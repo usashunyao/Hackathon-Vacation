@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vacation Destination Finder</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDah6y8b7LWhNUqJkpCizcPfoIDwCM5P_k"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+            font-weight: bold;
+        }
+        input[type="date"], input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #preferencesList {
+            margin-top: 20px;
+        }
+        .preference-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .remove-btn {
+            background-color: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .remove-btn:hover {
+            background-color: #c0392b;
+        }
+        #recommendations {
+            margin-top: 30px;
+        }
+        .destination-card {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        .destination-card h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .match-score {
+            display: inline-block;
+            background-color: #2ecc71;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .activity-match {
+            margin-left: 20px;
+            color: #34495e;
+            font-style: italic;
+        }
+        .budget-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        .budget-low {
+            color: #27ae60;
+        }
+        .budget-medium {
+            color: #f39c12;
+        }
+        .budget-high {
+            color: #e74c3c;
+        }
+        .season-info {
+            color: #7f8c8d;
+            font-style: italic;
+            margin-top: 5px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .destination-select {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f4f8;
+            border-radius: 4px;
+        }
+        .destination-select label {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        .destination-select input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        .schedule-day {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        .schedule-day h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .schedule-location {
+            color: #7f8c8d;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+        .schedule-activity {
+            margin-left: 20px;
+            color: #34495e;
+        }
+        .selected-destinations {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-radius: 4px;
+        }
+        .selected-destination-item {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .selected-destination-item .remove-dest {
+            margin-left: 5px;
+            cursor: pointer;
+        }
+        .transition-day {
+            background-color: #f1c40f;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #f39c12;
+            text-align: center;
+        }
+        .transition-day h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .transition-icon {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        .transition-details {
+            color: #34495e;
+            font-style: italic;
+        }
+        .travel-time {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .region-preference {
+            margin-top: 10px;
+        }
+        .region-tags {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .region-tag {
+            background-color: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .region-tag .remove-region {
+            margin-left: 5px;
+            cursor: pointer;
+        }
+        .travel-mode-selector {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f4f8;
+            border-radius: 4px;
+        }
+        .travel-mode-selector label {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        .travel-mode-selector input[type="radio"] {
+            margin-right: 5px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #7f8c8d;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vacation Destination Finder</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('preferences')">Your Preferences</div>
+            <div class="tab" onclick="showTab('recommendations')">Recommended Destinations</div>
+            <div class="tab" onclick="showTab('schedule')">Your Schedule</div>
+            <div class="tab" onclick="showTab('map')">World Map</div>
+        </div>
+        
+        <div id="preferences-tab" class="tab-content active">
+            <div class="form-group">
+                <label for="startDate">When do you want to travel?</label>
+                <input type="date" id="startDate" required>
+            </div>
+
+            <div class="form-group">
+                <label for="endDate">Until when?</label>
+                <input type="date" id="endDate" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="budget">What's your budget level?</label>
+                <select id="budget">
+                    <option value="low">Budget-friendly</option>
+                    <option value="medium" selected>Moderate</option>
+                    <option value="high">Luxury</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="preference">What activities interest you?</label>
+                <input type="text" id="preference" placeholder="e.g., beach relaxation, hiking, museums, food tours">
+                <button onclick="addPreference()">Add Activity</button>
+            </div>
+            
+            <div id="preferencesList"></div>
+            
+            <div class="form-group">
+                <label for="region">Preferred regions (optional)?</label>
+                <input type="text" id="region" placeholder="e.g., Europe, Asia, France, Japan">
+                <button onclick="addRegion()">Add Region</button>
+                <div class="region-tags" id="regionTags"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="startingCity">Where would you like to start your journey?</label>
+                <input type="text" class="form-control" id="startingCity" placeholder="Enter city, country (e.g., Tokyo, Japan)" required>
+            </div>
+            
+            <button onclick="findDestinations()" style="margin-top: 20px;">Find Destinations</button>
+        </div>
+
+        <div id="recommendations-tab" class="tab-content">
+            <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+            <div id="recommendations" class="container mt-4">
+                <div class="row" id="cityCards"></div>
+                <div class="mt-4" id="travelTimes"></div>
+            </div>
+            
+            <div class="selected-destinations" id="selectedDestinationsContainer" style="display: none;">
+                <h3>Selected Destinations</h3>
+                <div id="selectedDestinationsList"></div>
+                <button onclick="generateSchedule()" style="margin-top: 20px;">Generate Schedule</button>
+            </div>
+        </div>
+
+        <div id="schedule-tab" class="tab-content">
+            <div id="schedule"></div>
+        </div>
+
+        <div id="map-tab" class="tab-content">
+            <h2>Your Journey Map</h2>
+            <div id="mapContainer" style="width: 100%; height: 600px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize arrays
+        let preferences = [];
+        let selectedDestinations = [];
+        let regions = [];
+        
+        // Destinations data
+        const destinations = [
+            {
+                name: "Paris, France",
+                activities: ["museums", "art galleries", "historic sites", "food tours", "shopping", "romantic walks", "wine tasting", "cafes", "theater", "fashion"],
+                budget: "medium",
+                bestSeasons: ["spring", "fall"],
+                description: "The City of Light offers world-class museums, iconic landmarks, and a vibrant cafe culture.",
+                continent: "Europe",
+                country: "France",
+                coordinates: { lat: 48.8566, lng: 2.3522 }
+            },
+            {
+                name: "Tokyo, Japan",
+                activities: ["technology", "anime", "manga", "video games", "arcades", "shopping", "food tours", "temples", "gardens", "nightlife"],
+                budget: "high",
+                bestSeasons: ["spring", "fall"],
+                description: "A fascinating blend of ultra-modern and traditional, Tokyo offers visitors a seemingly unlimited choice of shopping, entertainment, culture, and dining.",
+                continent: "Asia",
+                country: "Japan",
+                coordinates: { lat: 35.6762, lng: 139.6503 }
+            },
+            {
+                name: "New York City, USA",
+                activities: ["museums", "theater", "shopping", "food tours", "nightlife", "parks", "architecture", "art galleries", "music venues", "sports"],
+                budget: "high",
+                bestSeasons: ["spring", "fall"],
+                description: "The Big Apple offers world-class museums, Broadway shows, diverse cuisine, and iconic landmarks.",
+                continent: "North America",
+                country: "USA",
+                coordinates: { lat: 40.7128, lng: -74.0060 }
+            },
+            {
+                name: "Dubai, UAE",
+                activities: ["shopping", "luxury", "desert safari", "skyscrapers", "beaches", "water parks", "food tours", "spas", "nightlife", "adventure sports"],
+                budget: "high",
+                bestSeasons: ["winter"],
+                description: "A futuristic city in the desert, Dubai offers luxury shopping, ultramodern architecture, and a lively nightlife scene.",
+                continent: "Asia",
+                country: "UAE",
+                coordinates: { lat: 25.2048, lng: 55.2708 }
+            },
+            {
+                name: "Bali, Indonesia",
+                activities: ["beaches", "temples", "yoga", "spas", "hiking", "water sports", "food tours", "culture", "nature", "relaxation"],
+                budget: "low",
+                bestSeasons: ["spring", "summer", "fall"],
+                description: "Known for its forested volcanic mountains, iconic rice paddies, beaches, and coral reefs.",
+                continent: "Asia",
+                country: "Indonesia",
+                coordinates: { lat: -8.4095, lng: 115.1889 }
+            },
+            {
+                name: "Kyoto, Japan",
+                activities: ["temples", "gardens", "tea ceremonies", "traditional culture", "hiking", "food tours", "museums", "nature", "photography", "relaxation"],
+                budget: "medium",
+                bestSeasons: ["spring", "fall"],
+                description: "Former imperial capital of Japan, known for its numerous classical Buddhist temples, gardens, and traditional wooden houses.",
+                continent: "Asia",
+                country: "Japan",
+                coordinates: { lat: 35.0116, lng: 135.7681 }
+            },
+            {
+                name: "Barcelona, Spain",
+                activities: ["beaches", "architecture", "food tours", "museums", "shopping", "nightlife", "parks", "culture", "sports", "relaxation"],
+                budget: "medium",
+                bestSeasons: ["spring", "summer", "fall"],
+                description: "Famous for its art and architecture, Barcelona offers a perfect blend of beach life, culture, and vibrant nightlife.",
+                continent: "Europe",
+                country: "Spain",
+                coordinates: { lat: 41.3851, lng: 2.1734 }
+            },
+            {
+                name: "Cape Town, South Africa",
+                activities: ["beaches", "hiking", "wildlife", "wine tasting", "food tours", "adventure sports", "culture", "nature", "photography", "shopping"],
+                budget: "medium",
+                bestSeasons: ["spring", "summer"],
+                description: "A coastal gem with stunning natural beauty, diverse culture, and exciting outdoor adventures.",
+                continent: "Africa",
+                country: "South Africa",
+                coordinates: { lat: -33.9249, lng: 18.4241 }
+            },
+            {
+                name: "Sydney, Australia",
+                activities: ["beaches", "harbor", "outdoor activities", "food tours", "shopping", "nightlife", "culture", "nature", "sports", "relaxation"],
+                budget: "high",
+                bestSeasons: ["spring", "summer", "fall"],
+                description: "Australia's largest city is famous for its harbor, iconic Opera House, and beautiful beaches.",
+                continent: "Oceania",
+                country: "Australia",
+                coordinates: { lat: -33.8688, lng: 151.2093 }
+            },
+            {
+                name: "Rio de Janeiro, Brazil",
+                activities: ["beaches", "carnival", "samba", "food tours", "nightlife", "hiking", "culture", "music", "sports", "relaxation"],
+                budget: "medium",
+                bestSeasons: ["spring", "summer"],
+                description: "Known for its beaches, carnival, and vibrant culture, Rio offers a perfect blend of urban life and natural beauty.",
+                continent: "South America",
+                country: "Brazil",
+                coordinates: { lat: -22.9068, lng: -43.1729 }
+            }
+        ];
+        
+        // Travel times between major cities (in hours)
+        const travelTimes = {
+            "Tokyo, Japan": {
+                "Shanghai, China": { airplane: 3, train: 8 },
+                "Bangkok, Thailand": { airplane: 6.5 },
+                "Singapore": { airplane: 7 },
+                "Dubai, UAE": { airplane: 10 },
+                "London, UK": { airplane: 12 },
+                "Paris, France": { airplane: 12 },
+                "New York City, USA": { airplane: 14 },
+                "Los Angeles, USA": { airplane: 11 },
+                "Sydney, Australia": { airplane: 9 },
+                "Kyoto, Japan": { train: 2.5, airplane: 1 },
+                "Bali, Indonesia": { airplane: 7 },
+                "Barcelona, Spain": { airplane: 13 },
+                "Cape Town, South Africa": { airplane: 16 },
+                "Rio de Janeiro, Brazil": { airplane: 24 }
+            },
+            "Kyoto, Japan": {
+                "Tokyo, Japan": { train: 2.5, airplane: 1 },
+                "Osaka, Japan": { train: 0.5 },
+                "Seoul, South Korea": { airplane: 2 },
+                "Shanghai, China": { airplane: 2.5 },
+                "Bangkok, Thailand": { airplane: 6.5 },
+                "Singapore": { airplane: 7 },
+                "Dubai, UAE": { airplane: 10 },
+                "London, UK": { airplane: 12 },
+                "Paris, France": { airplane: 12 },
+                "New York City, USA": { airplane: 14 },
+                "Los Angeles, USA": { airplane: 11 },
+                "Sydney, Australia": { airplane: 9 },
+                "Bali, Indonesia": { airplane: 7 },
+                "Barcelona, Spain": { airplane: 13 },
+                "Cape Town, South Africa": { airplane: 16 },
+                "Rio de Janeiro, Brazil": { airplane: 24 }
+            },
+            "Paris, France": {
+                "London, UK": { train: 2.5, airplane: 1 },
+                "Barcelona, Spain": { train: 6.5, airplane: 1.5 },
+                "Rome, Italy": { train: 10, airplane: 2 },
+                "Dubai, UAE": { airplane: 6.5 },
+                "New York City, USA": { airplane: 8 },
+                "Tokyo, Japan": { airplane: 12 },
+                "Sydney, Australia": { airplane: 22 },
+                "Kyoto, Japan": { airplane: 12 },
+                "Bali, Indonesia": { airplane: 15 },
+                "Cape Town, South Africa": { airplane: 11 },
+                "Rio de Janeiro, Brazil": { airplane: 11 }
+            },
+            "New York City, USA": {
+                "Los Angeles, USA": { airplane: 6 },
+                "London, UK": { airplane: 7 },
+                "Paris, France": { airplane: 8 },
+                "Tokyo, Japan": { airplane: 14 },
+                "Dubai, UAE": { airplane: 12 },
+                "Sydney, Australia": { airplane: 20 },
+                "Kyoto, Japan": { airplane: 14 },
+                "Bali, Indonesia": { airplane: 20 },
+                "Barcelona, Spain": { airplane: 8.5 },
+                "Cape Town, South Africa": { airplane: 15 },
+                "Rio de Janeiro, Brazil": { airplane: 8 }
+            },
+            "Dubai, UAE": {
+                "London, UK": { airplane: 7 },
+                "Paris, France": { airplane: 6.5 },
+                "New York City, USA": { airplane: 12 },
+                "Tokyo, Japan": { airplane: 10 },
+                "Sydney, Australia": { airplane: 13 },
+                "Bangkok, Thailand": { airplane: 6 },
+                "Singapore": { airplane: 7.5 },
+                "Kyoto, Japan": { airplane: 10 },
+                "Bali, Indonesia": { airplane: 9 },
+                "Barcelona, Spain": { airplane: 7 },
+                "Cape Town, South Africa": { airplane: 9 },
+                "Rio de Janeiro, Brazil": { airplane: 14 }
+            },
+            "Sydney, Australia": {
+                "Tokyo, Japan": { airplane: 9 },
+                "Singapore": { airplane: 8 },
+                "Dubai, UAE": { airplane: 13 },
+                "London, UK": { airplane: 22 },
+                "Paris, France": { airplane: 22 },
+                "New York City, USA": { airplane: 20 },
+                "Los Angeles, USA": { airplane: 15 },
+                "Kyoto, Japan": { airplane: 9 },
+                "Bali, Indonesia": { airplane: 6 },
+                "Barcelona, Spain": { airplane: 22 },
+                "Cape Town, South Africa": { airplane: 11 },
+                "Rio de Janeiro, Brazil": { airplane: 18 }
+            },
+            "Bali, Indonesia": {
+                "Singapore": { airplane: 2.5 },
+                "Tokyo, Japan": { airplane: 7 },
+                "Sydney, Australia": { airplane: 6 },
+                "Dubai, UAE": { airplane: 9 },
+                "London, UK": { airplane: 15 },
+                "Paris, France": { airplane: 15 },
+                "New York City, USA": { airplane: 20 },
+                "Kyoto, Japan": { airplane: 7 },
+                "Barcelona, Spain": { airplane: 15 },
+                "Cape Town, South Africa": { airplane: 11 },
+                "Rio de Janeiro, Brazil": { airplane: 20 }
+            },
+            "Barcelona, Spain": {
+                "Paris, France": { train: 6.5, airplane: 1.5 },
+                "London, UK": { airplane: 2 },
+                "Rome, Italy": { train: 12, airplane: 2 },
+                "Dubai, UAE": { airplane: 7 },
+                "New York City, USA": { airplane: 8.5 },
+                "Tokyo, Japan": { airplane: 13 },
+                "Kyoto, Japan": { airplane: 13 },
+                "Bali, Indonesia": { airplane: 15 },
+                "Cape Town, South Africa": { airplane: 11 },
+                "Rio de Janeiro, Brazil": { airplane: 11 }
+            },
+            "Cape Town, South Africa": {
+                "Dubai, UAE": { airplane: 9 },
+                "London, UK": { airplane: 11 },
+                "Paris, France": { airplane: 11 },
+                "New York City, USA": { airplane: 15 },
+                "Sydney, Australia": { airplane: 11 },
+                "Tokyo, Japan": { airplane: 16 },
+                "Kyoto, Japan": { airplane: 16 },
+                "Bali, Indonesia": { airplane: 11 },
+                "Barcelona, Spain": { airplane: 11 },
+                "Rio de Janeiro, Brazil": { airplane: 8 }
+            },
+            "Rio de Janeiro, Brazil": {
+                "New York City, USA": { airplane: 8 },
+                "London, UK": { airplane: 11 },
+                "Paris, France": { airplane: 11 },
+                "Dubai, UAE": { airplane: 14 },
+                "Tokyo, Japan": { airplane: 24 },
+                "Sydney, Australia": { airplane: 18 },
+                "Kyoto, Japan": { airplane: 24 },
+                "Bali, Indonesia": { airplane: 20 },
+                "Barcelona, Spain": { airplane: 11 },
+                "Cape Town, South Africa": { airplane: 8 }
+            }
+        };
+        
+        // Load destinations when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the page
+            initializePage();
+        });
+        
+        function initializePage() {
+            // Set placeholder text for dates
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            
+            startDateInput.placeholder = 'YYYY-MM-DD';
+            endDateInput.placeholder = 'YYYY-MM-DD';
+            
+            // Populate starting point dropdown
+            const startingPointSelect = document.getElementById('startingCity');
+            destinations.forEach(dest => {
+                const option = document.createElement('option');
+                option.value = dest.name;
+                option.textContent = dest.name;
+                startingPointSelect.appendChild(option);
+            });
+            
+            // Add event listeners for enter key
+            const preferenceInput = document.getElementById('preference');
+            preferenceInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addPreference();
+                }
+            });
+            
+            const regionInput = document.getElementById('region');
+            regionInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addRegion();
+                }
+            });
+        }
+        
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+        
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            document.querySelector(`.tab[onclick="showTab('${tabName}')"]`).classList.add('active');
+            
+            // If showing map tab, initialize the map
+            if (tabName === 'map' && window.mapDestinations) {
+                initializeMap();
+            }
+        }
+        
+        function addPreference() {
+            const preferenceInput = document.getElementById('preference');
+            const preference = preferenceInput.value.trim().toLowerCase();
+            
+            if (preference && !preferences.includes(preference)) {
+                preferences.push(preference);
+                updatePreferencesList();
+                preferenceInput.value = '';
+            }
+        }
+        
+        function removePreference(preference) {
+            preferences = preferences.filter(p => p !== preference);
+            updatePreferencesList();
+        }
+        
+        function updatePreferencesList() {
+            const preferencesList = document.getElementById('preferencesList');
+            preferencesList.innerHTML = '';
+            
+            preferences.forEach(preference => {
+                const preferenceItem = document.createElement('div');
+                preferenceItem.className = 'preference-item';
+                preferenceItem.innerHTML = `
+                    ${preference}
+                    <button class="remove-btn" onclick="removePreference('${preference}')">Remove</button>
+                `;
+                preferencesList.appendChild(preferenceItem);
+            });
+        }
+        
+        function addRegion() {
+            const regionInput = document.getElementById('region');
+            const region = regionInput.value.trim();
+            
+            if (region && !regions.includes(region)) {
+                regions.push(region);
+                updateRegionTags();
+                regionInput.value = '';
+            }
+        }
+        
+        function removeRegion(region) {
+            regions = regions.filter(r => r !== region);
+            updateRegionTags();
+        }
+        
+        function updateRegionTags() {
+            const regionTags = document.getElementById('regionTags');
+            regionTags.innerHTML = '';
+            
+            regions.forEach(region => {
+                const regionTag = document.createElement('div');
+                regionTag.className = 'region-tag';
+                regionTag.innerHTML = `
+                    ${region}
+                    <span class="remove-region" onclick="removeRegion('${region}')">&times;</span>
+                `;
+                regionTags.appendChild(regionTag);
+            });
+        }
+        
+        function findDestinations() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const budget = document.getElementById('budget').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select your travel dates');
+                return;
+            }
+            
+            if (preferences.length === 0) {
+                alert('Please add at least one activity preference');
+                return;
+            }
+            
+            // Show loading indicator
+            const recommendationsDiv = document.getElementById('recommendations');
+            recommendationsDiv.innerHTML = '<h2>Finding Perfect Destinations</h2><div class="loading">Searching for destinations that match your preferences...</div>';
+            
+            // Call Gemini API to get personalized recommendations
+            getGeminiRecommendations(preferences, budget, regions, startDate, endDate);
+        }
+        
+        async function getGeminiRecommendations(preferences, budget, regions, startDate, endDate) {
+            try {
+                // Prepare the prompt for Gemini
+                const prompt = `
+                    I'm planning a vacation with the following preferences:
+                    - Activities: ${preferences.join(', ')}
+                    - Budget: ${budget}
+                    - Preferred regions: ${regions.length > 0 ? regions.join(', ') : 'No specific regions'}
+                    - Travel dates: ${startDate} to ${endDate}
+                    
+                    Please recommend 5-8 major cities that would be perfect for this vacation.
+                    For each city, provide the following information in JSON format:
+                    {
+                        "cities": [
+                            {
+                                "name": "City, Country",
+                                "activities": ["activity1", "activity2", ...],
+                                "budget": "low/medium/high",
+                                "bestSeasons": ["spring", "summer", "fall", "winter"],
+                                "description": "Brief description of the city",
+                                "continent": "Continent name",
+                                "country": "Country name",
+                                "coordinates": {"lat": latitude, "lng": longitude}
+                            }
+                        ],
+                        "travelTimes": {
+                            "City1, Country1": {
+                                "City2, Country2": {"airplane": hours, "train": hours}
+                            }
+                        }
+                    }
+                    
+                    Please ensure the response is in valid JSON format and includes both the cities array and travelTimes object.
+                    Make sure the cities are well-distributed geographically and offer the activities requested.
+                `;
+                
+                console.log('Sending request to Gemini API...'); // Debug log
+                
+                // Call the Gemini API
+                const response = await fetch('/api/gemini', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt }),
+                });
+                
+                console.log('Received response from Gemini API:', response.status); // Debug log
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to get recommendations from Gemini API');
+                }
+                
+                const data = await response.json();
+                console.log('Parsed response data:', data); // Debug log
+                
+                if (!data.response) {
+                    throw new Error('No response data received from Gemini API');
+                }
+                
+                // Parse the response from Gemini
+                const geminiResponse = data.response;
+                console.log('Gemini response:', geminiResponse); // Debug log
+                
+                // Extract the JSON from the response
+                const jsonMatch = geminiResponse.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    throw new Error('Could not parse JSON from Gemini response');
+                }
+                
+                console.log('Extracted JSON:', jsonMatch[0]); // Debug log
+                
+                let parsedData;
+                try {
+                    parsedData = JSON.parse(jsonMatch[0]);
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError); // Debug log
+                    throw new Error('Invalid JSON format in Gemini response');
+                }
+                
+                if (!parsedData.cities || !Array.isArray(parsedData.cities)) {
+                    throw new Error('Missing or invalid cities array in Gemini response');
+                }
+                
+                console.log('Successfully parsed data:', parsedData); // Debug log
+                
+                // Update the destinations array with the new recommendations
+                updateDestinationsWithGeminiData(parsedData);
+                
+                // Calculate match scores for each destination
+                const recommendations = destinations.map(destination => {
+                    const matchScore = calculateMatchScore(destination, preferences, budget, regions);
+                    return {
+                        ...destination,
+                        matchScore,
+                        matchedActivities: destination.activities.filter(activity => 
+                            preferences.some(pref => {
+                                // Exact match
+                                if (activity.toLowerCase().includes(pref.toLowerCase())) {
+                                    return true;
+                                }
+                                // Partial match (check if words match)
+                                const activityWords = activity.toLowerCase().split(/\s+/);
+                                const prefWords = pref.toLowerCase().split(/\s+/);
+                                return prefWords.some(word => activityWords.includes(word));
+                            })
+                        )
+                    };
+                });
+                
+                // Sort by match score and filter out low matches
+                const filteredRecommendations = recommendations
+                    .filter(dest => dest.matchScore > 0)
+                    .sort((a, b) => b.matchScore - a.matchScore);
+                
+                if (filteredRecommendations.length === 0) {
+                    throw new Error('No matching destinations found');
+                }
+                
+                // Display recommendations
+                displayRecommendations(filteredRecommendations, startDate);
+                
+                // Switch to recommendations tab
+                showTab('recommendations');
+                
+            } catch (error) {
+                console.error('Error getting recommendations from Gemini:', error); // Debug log
+                const recommendationsDiv = document.getElementById('recommendations');
+                recommendationsDiv.innerHTML = `
+                    <h2>Error Getting Recommendations</h2>
+                    <div class="error-message">
+                        <p>We couldn't get personalized recommendations at this time. Please try again later.</p>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                    <button onclick="findDestinations()" style="margin-top: 20px;">Try Again</button>
+                `;
+            }
+        }
+        
+        function updateDestinationsWithGeminiData(geminiData) {
+            // Clear existing destinations
+            destinations.length = 0;
+            
+            // Add new destinations from Gemini
+            if (geminiData.cities && Array.isArray(geminiData.cities)) {
+                geminiData.cities.forEach(city => {
+                    destinations.push(city);
+                });
+            }
+            
+            // Update travel times
+            if (geminiData.travelTimes) {
+                Object.assign(travelTimes, geminiData.travelTimes);
+            }
+            
+            // Update starting point dropdown
+            updateStartingPointDropdown();
+        }
+        
+        function updateStartingPointDropdown() {
+            const startingPointSelect = document.getElementById('startingCity');
+            if (startingPointSelect) {
+                startingPointSelect.innerHTML = '<option value="">Let me decide</option>';
+                
+                destinations.forEach(dest => {
+                    const option = document.createElement('option');
+                    option.value = dest.name;
+                    option.textContent = dest.name;
+                    startingPointSelect.appendChild(option);
+                });
+            }
+        }
+        
+        function calculateMatchScore(destination, preferences, budget, regions) {
+            let score = 0;
+            
+            // Activity match (3 points per match, 1 point for partial match)
+            const matchedActivities = destination.activities.filter(activity => {
+                const hasMatch = preferences.some(pref => {
+                    // Exact match
+                    if (activity.toLowerCase().includes(pref.toLowerCase())) {
+                        score += 3;
+                        return true;
+                    }
+                    // Partial match (check if words match)
+                    const activityWords = activity.toLowerCase().split(/\s+/);
+                    const prefWords = pref.toLowerCase().split(/\s+/);
+                    return prefWords.some(word => activityWords.includes(word));
+                });
+                return hasMatch;
+            });
+            
+            // Budget match (5 points)
+            if (destination.budget === budget) {
+                score += 5;
+            }
+            
+            // Region match (5 points)
+            if (regions.length > 0) {
+                const destinationRegion = `${destination.continent}, ${destination.country}`.toLowerCase();
+                if (regions.some(region => destinationRegion.includes(region.toLowerCase()))) {
+                    score += 5;
+                }
+            }
+            
+            return score;
+        }
+        
+        function selectDestination(destinationName) {
+            if (!selectedDestinations.includes(destinationName)) {
+                selectedDestinations.push(destinationName);
+                updateSelectedDestinations();
+            }
+        }
+        
+        function removeSelectedDestination(destinationName) {
+            selectedDestinations = selectedDestinations.filter(dest => dest !== destinationName);
+            updateSelectedDestinations();
+        }
+        
+        function updateSelectedDestinations() {
+            const container = document.getElementById('selectedDestinationsContainer');
+            const list = document.getElementById('selectedDestinationsList');
+            
+            if (selectedDestinations.length > 0) {
+                container.style.display = 'block';
+                list.innerHTML = '';
+                
+                selectedDestinations.forEach(destination => {
+                    const item = document.createElement('div');
+                    item.className = 'selected-destination-item';
+                    item.innerHTML = `
+                        ${destination}
+                        <span class="remove-dest" onclick="removeSelectedDestination('${destination}')">&times;</span>
+                    `;
+                    list.appendChild(item);
+                });
+            } else {
+                container.style.display = 'none';
+            }
+        }
+        
+        function generateSchedule() {
+            if (selectedDestinations.length === 0) {
+                alert('Please select at least one destination first.');
+                return;
+            }
+
+            const startDate = new Date(document.getElementById('startDate').value);
+            const endDate = new Date(document.getElementById('endDate').value);
+            
+            if (startDate >= endDate) {
+                alert('End date must be after start date.');
+                return;
+            }
+
+            // Calculate total days
+            const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Calculate minimum required days (1 day per destination + 1 travel day between each destination + 2 travel days for start/end)
+            const minimumRequiredDays = selectedDestinations.length + (selectedDestinations.length - 1) + 2;
+            
+            if (totalDays < minimumRequiredDays) {
+                alert(`Your trip is too short for the selected destinations. You need at least ${minimumRequiredDays} days for ${selectedDestinations.length} destinations (1 day per destination plus travel days between them, plus travel to/from your starting point).`);
+                return;
+            }
+
+            // Get starting point preference
+            const startingPoint = document.getElementById('startingCity').value;
+            
+            // Get the home location - use the selected starting point or default to NYC
+            const homeLocation = startingPoint || "New York City, USA";
+            
+            // Create a copy of selected destinations
+            let destinationsToVisit = [...selectedDestinations];
+            
+            // Remove the starting point from the destinations to visit if it's specified
+            if (startingPoint && destinationsToVisit.includes(startingPoint)) {
+                destinationsToVisit = destinationsToVisit.filter(dest => dest !== startingPoint);
+            }
+            
+            // Find the optimal route using a more efficient algorithm
+            const optimalRoute = findOptimalRoute(homeLocation, destinationsToVisit);
+            
+            // Add the starting point at the beginning if it's specified
+            let orderedDestinations = optimalRoute;
+            if (startingPoint && selectedDestinations.includes(startingPoint)) {
+                orderedDestinations = [startingPoint, ...optimalRoute];
+            }
+
+            const schedule = [];
+            let currentDate = new Date(startDate);
+            
+            // Add initial travel day from starting location to first destination
+            const firstDestination = orderedDestinations[0];
+            const initialTravelTime = getTravelTime("Home", firstDestination);
+            const initialTravelMode = getPreferredTravelMode("Home", firstDestination);
+            
+            schedule.push({
+                date: new Date(currentDate),
+                type: 'travel',
+                from: "Home",
+                to: firstDestination,
+                travelTime: initialTravelTime,
+                travelMode: initialTravelMode
+            });
+            
+            currentDate.setDate(currentDate.getDate() + 1);
+            
+            // Calculate available days for destinations (excluding travel days)
+            const totalTravelDays = orderedDestinations.length + 1; // Travel days between destinations + return home
+            const availableDaysForDestinations = totalDays - totalTravelDays;
+            
+            // Calculate balanced days per destination
+            const baseDaysPerDestination = Math.floor(availableDaysForDestinations / orderedDestinations.length);
+            const extraDays = availableDaysForDestinations % orderedDestinations.length;
+            
+            // Add each destination to the schedule
+            for (let i = 0; i < orderedDestinations.length; i++) {
+                const destination = orderedDestinations[i];
+                const destinationData = destinations.find(d => d.name === destination);
+                
+                if (!destinationData) continue;
+
+                // Add travel day if not the first destination
+                if (i > 0) {
+                    const prevDestination = orderedDestinations[i - 1];
+                    const travelTime = getTravelTime(prevDestination, destination);
+                    const travelMode = getPreferredTravelMode(prevDestination, destination);
+                    
+                    schedule.push({
+                        date: new Date(currentDate),
+                        type: 'travel',
+                        from: prevDestination,
+                        to: destination,
+                        travelTime: travelTime,
+                        travelMode: travelMode
+                    });
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+
+                // Calculate days to spend at this destination (balanced distribution)
+                const daysToAdd = baseDaysPerDestination + (i < extraDays ? 1 : 0);
+                
+                for (let j = 0; j < daysToAdd; j++) {
+                    if (currentDate <= endDate) {
+                        schedule.push({
+                            date: new Date(currentDate),
+                            type: 'destination',
+                            destination: destination,
+                            activities: destinationData.activities
+                        });
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
+                }
+            }
+            
+            // Add final travel day from last destination to home
+            const lastDestination = orderedDestinations[orderedDestinations.length - 1];
+            const finalTravelTime = getTravelTime(lastDestination, "Home");
+            const finalTravelMode = getPreferredTravelMode(lastDestination, "Home");
+            
+            // Always add the return trip home, even if it goes beyond the end date
+            schedule.push({
+                date: new Date(currentDate),
+                type: 'travel',
+                from: lastDestination,
+                to: "Home",
+                travelTime: finalTravelTime,
+                travelMode: finalTravelMode
+            });
+
+            displaySchedule(schedule);
+            showTab('schedule');
+            
+            // Generate map data for visualization
+            generateMapData(["Home", ...orderedDestinations, "Home"]);
+            
+            // Scroll to top of schedule
+            window.scrollTo(0, 0);
+        }
+
+        // Function to find the optimal route using a more efficient algorithm
+        function findOptimalRoute(start, destinations) {
+            if (destinations.length === 0) return [];
+            
+            // Get the home location
+            const homeLocation = start || "New York City, USA";
+            
+            // If there's only one destination, return it
+            if (destinations.length === 1) {
+                return destinations;
+            }
+            
+            // For 2 or 3 destinations, we can evaluate all permutations
+            if (destinations.length <= 3) {
+                // Generate all possible permutations of destinations
+                const permutations = generatePermutations(destinations);
+                
+                // Find the permutation with the minimum total travel time
+                let minTotalTime = Infinity;
+                let optimalRoute = null;
+                
+                // For each permutation, calculate the total travel time
+                permutations.forEach(permutation => {
+                    let totalTime = 0;
+                    
+                    // Add travel time from home to first destination
+                    const firstDest = permutation[0];
+                    const timeFromHome = getTravelTimeInHours(homeLocation, firstDest);
+                    totalTime += timeFromHome;
+                    
+                    // Add travel time between destinations
+                    for (let i = 0; i < permutation.length - 1; i++) {
+                        const from = permutation[i];
+                        const to = permutation[i + 1];
+                        const time = getTravelTimeInHours(from, to);
+                        totalTime += time;
+                    }
+                    
+                    // Add travel time from last destination to home
+                    const lastDest = permutation[permutation.length - 1];
+                    const timeToHome = getTravelTimeInHours(lastDest, homeLocation);
+                    totalTime += timeToHome;
+                    
+                    // Update optimal route if this one is better
+                    if (totalTime < minTotalTime) {
+                        minTotalTime = totalTime;
+                        optimalRoute = [...permutation];
+                    }
+                });
+                
+                // If no optimal route found, return the original order
+                if (!optimalRoute) {
+                    return destinations;
+                }
+                
+                return optimalRoute;
+            }
+            
+            // For more than 3 destinations, use a greedy algorithm
+            // Start from home and repeatedly visit the nearest unvisited destination
+            const unvisited = new Set(destinations);
+            const route = [];
+            let current = homeLocation;
+            
+            while (unvisited.size > 0) {
+                let nearest = null;
+                let minTime = Infinity;
+                
+                // Find the nearest unvisited destination
+                for (const dest of unvisited) {
+                    const time = getTravelTimeInHours(current, dest);
+                    if (time < minTime) {
+                        minTime = time;
+                        nearest = dest;
+                    }
+                }
+                
+                // Add the nearest destination to the route
+                route.push(nearest);
+                unvisited.delete(nearest);
+                current = nearest;
+            }
+            
+            return route;
+        }
+        
+        // Function to generate all possible permutations of an array
+        function generatePermutations(arr) {
+            if (arr.length <= 1) return [arr];
+            
+            const result = [];
+            
+            for (let i = 0; i < arr.length; i++) {
+                const current = arr[i];
+                const remaining = [...arr.slice(0, i), ...arr.slice(i + 1)];
+                const subPermutations = generatePermutations(remaining);
+                
+                for (const subPerm of subPermutations) {
+                    result.push([current, ...subPerm]);
+                }
+            }
+            
+            return result;
+        }
+        
+        // Function to get travel time in hours between two destinations
+        function getTravelTimeInHours(from, to) {
+            // Get the travel time string
+            const travelTimeStr = getTravelTime(from, to);
+            
+            // Parse the travel time string to get hours
+            if (travelTimeStr === 'Not available') {
+                // Calculate a reasonable default based on the cities
+                const fromCity = from === "Home" ? document.getElementById('startingCity').value || "New York City, USA" : from;
+                const toCity = to === "Home" ? document.getElementById('startingCity').value || "New York City, USA" : to;
+                
+                // If we have data for the reverse route, use that
+                const reverseTime = getTravelTime(toCity, fromCity);
+                if (reverseTime !== 'Not available') {
+                    return parseFloat(reverseTime);
+                }
+                
+                // If still not available, return a default value
+                return 8; // Default to 8 hours for international flights
+            }
+            
+            // Handle ranges like "3-5"
+            if (travelTimeStr.includes('-')) {
+                const [min, max] = travelTimeStr.split('-').map(Number);
+                return (min + max) / 2; // Return average
+            }
+            
+            // Handle single number
+            return parseFloat(travelTimeStr);
+        }
+
+        function generateMapData(destinations) {
+            // Store the destinations for map visualization
+            window.mapDestinations = destinations;
+        }
+
+        function getTravelTime(from, to) {
+            // Handle special case for Home location
+            if (from === "Home" || to === "Home") {
+                const homeLocation = document.getElementById('startingCity').value || "New York City, USA";
+                if (from === "Home") {
+                    return travelTimes[homeLocation]?.[to]?.airplane || "8"; // Default to 8 hours for international flights
+                } else {
+                    return travelTimes[from]?.[homeLocation]?.airplane || "8"; // Default to 8 hours for international flights
+                }
+            }
+
+            // Check if we have direct travel time data
+            if (travelTimes[from]?.[to]) {
+                const modes = travelTimes[from][to];
+                const preferredMode = getPreferredTravelMode(from, to);
+                return modes[preferredMode] ? modes[preferredMode].toString() : "8";
+            }
+
+            // Check reverse route
+            if (travelTimes[to]?.[from]) {
+                const modes = travelTimes[to][from];
+                const preferredMode = getPreferredTravelMode(from, to);
+                return modes[preferredMode] ? modes[preferredMode].toString() : "8";
+            }
+
+            // If no data available, estimate based on distance
+            const fromCity = destinations.find(d => d.name === from);
+            const toCity = destinations.find(d => d.name === to);
+            
+            if (fromCity && toCity) {
+                // Calculate approximate distance using coordinates
+                const distance = calculateDistance(
+                    fromCity.coordinates.lat,
+                    fromCity.coordinates.lng,
+                    toCity.coordinates.lat,
+                    toCity.coordinates.lng
+                );
+                
+                // Estimate flight time based on distance (assuming average speed of 800 km/h)
+                const estimatedHours = Math.round(distance / 800);
+                return estimatedHours.toString();
+            }
+            
+            // If we still don't have a value, provide a reasonable default based on the cities
+            // This ensures we always return a valid travel time
+            return "8"; // Default to 8 hours for international flights
+        }
+
+        function getPreferredTravelMode(from, to) {
+            // Handle special case for "Home"
+            if (from === "Home" || to === "Home") {
+                // Get the home location from the starting point dropdown
+                const homeLocation = document.getElementById('startingCity').value || "New York City, USA";
+                
+                if (from === "Home") {
+                    // Travel from home to destination
+                    const trainAvailable = isTrainAvailable(homeLocation, to);
+                    const modeInput = document.querySelector(`input[name="travelMode_${homeLocation}_${to}"]:checked`);
+                    return modeInput ? modeInput.value : (trainAvailable ? 'train' : 'airplane');
+                } else {
+                    // Travel from destination to home
+                    const trainAvailable = isTrainAvailable(from, homeLocation);
+                    const modeInput = document.querySelector(`input[name="travelMode_${from}_${homeLocation}"]:checked`);
+                    return modeInput ? modeInput.value : (trainAvailable ? 'train' : 'airplane');
+                }
+            }
+            
+            const trainAvailable = isTrainAvailable(from, to);
+            const modeInput = document.querySelector(`input[name="travelMode_${from}_${to}"]:checked`);
+            return modeInput ? modeInput.value : (trainAvailable ? 'train' : 'airplane');
+        }
+
+        function isTrainAvailable(from, to) {
+            return travelTimes[from]?.[to]?.train !== undefined;
+        }
+
+        // Calculate distance between two points using the Haversine formula
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the earth in km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2); 
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            const distance = R * c; // Distance in km
+            return distance;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI/180);
+        }
+
+        function displaySchedule(schedule) {
+            const scheduleDiv = document.getElementById('schedule');
+            scheduleDiv.innerHTML = '<h2>Your Vacation Schedule</h2>';
+
+            schedule.forEach(day => {
+                const dayElement = document.createElement('div');
+                
+                if (day.type === 'travel') {
+                    dayElement.className = 'transition-day';
+                    
+                    // Get the travel mode icon
+                    const travelModeIcon = day.travelMode === 'train' ? '🚂' : '✈️';
+                    
+                    dayElement.innerHTML = `
+                        <h3>${formatDate(day.date)}</h3>
+                        <div class="transition-icon">${travelModeIcon}</div>
+                        <div class="transition-details">
+                            From: ${day.from}<br>
+                            To: ${day.to}<br>
+                            <span class="travel-time">
+                                ${travelModeIcon} 
+                                Approximate travel time: ${day.travelTime} hours
+                            </span>
+                        </div>
+                    `;
+                } else {
+                    dayElement.className = 'schedule-day';
+                    dayElement.innerHTML = `
+                        <h3>${formatDate(day.date)}</h3>
+                        <div class="schedule-location">📍 ${day.destination}</div>
+                        ${day.activities.map(activity => `
+                            <div class="schedule-activity">• ${activity}</div>
+                        `).join('')}
+                    `;
+                }
+                
+                scheduleDiv.appendChild(dayElement);
+            });
+            
+            // Add a button to view the world map
+            const mapButton = document.createElement('div');
+            mapButton.style.textAlign = 'center';
+            mapButton.style.marginTop = '30px';
+            mapButton.innerHTML = `
+                <button onclick="showTab('map')" style="padding: 10px 20px; font-size: 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    View World Map
+                </button>
+            `;
+            scheduleDiv.appendChild(mapButton);
+        }
+        
+        function displayRecommendations(recommendations, startDate) {
+            const recommendationsDiv = document.getElementById('recommendations');
+            recommendationsDiv.innerHTML = '<h2>Recommended Destinations</h2>';
+            
+            if (!recommendations || recommendations.length === 0) {
+                recommendationsDiv.innerHTML += `
+                    <div class="no-results">
+                        <p>No destinations match your preferences. Try:</p>
+                        <ul>
+                            <li>Adding more activities to your preferences</li>
+                            <li>Removing some activities to broaden your search</li>
+                            <li>Checking different dates</li>
+                        </ul>
+                        <p>You can also try searching for specific locations in any destination using the "Find Specific Locations" feature.</p>
+                    </div>`;
+                return;
+            }
+            
+            // Get the home location
+            const homeLocation = document.getElementById('startingCity').value;
+            
+            recommendations.forEach(dest => {
+                // Skip the home location if it's specified
+                if (homeLocation && dest.name === homeLocation) {
+                    return;
+                }
+                
+                const season = getSeason(startDate);
+                const isGoodSeason = dest.bestSeasons.includes(season);
+                
+                const destinationCard = document.createElement('div');
+                destinationCard.className = 'destination-card';
+                
+                let budgetClass = '';
+                let budgetText = '';
+                
+                switch(dest.budget) {
+                    case 'low':
+                        budgetClass = 'budget-low';
+                        budgetText = 'Budget-friendly';
+                        break;
+                    case 'medium':
+                        budgetClass = 'budget-medium';
+                        budgetText = 'Moderate';
+                        break;
+                    case 'high':
+                        budgetClass = 'budget-high';
+                        budgetText = 'Luxury';
+                        break;
+                }
+                
+                destinationCard.innerHTML = `
+                    <h3>${dest.name} <span class="match-score" title="Number of activities that match your interests">${dest.matchScore} matches</span> <span class="budget-indicator ${budgetClass}">${budgetText}</span></h3>
+                    <p>${dest.description}</p>
+                    <div class="activity-match">
+                        <strong>Matches your interests:</strong> ${dest.matchedActivities.join(', ')}
+                    </div>
+                    <div class="season-info">
+                        <strong>Best seasons:</strong> ${dest.bestSeasons.join(', ')}
+                        ${isGoodSeason ? ' (Good time to visit!)' : ' (Consider visiting during these seasons)'}
+                    </div>
+                    <div class="destination-select">
+                        <label>
+                            <input type="checkbox" onchange="toggleDestination('${dest.name}')" id="select-${dest.name.replace(/\s+/g, '-')}">
+                            Select this destination
+                        </label>
+                    </div>
+                    <button onclick="showLocations('${dest.name}')" class="location-btn">Find Specific Locations</button>
+                `;
+                
+                recommendationsDiv.appendChild(destinationCard);
+            });
+            
+            // Show the selected destinations container
+            document.getElementById('selectedDestinationsContainer').style.display = 'block';
+            updateSelectedDestinationsList();
+        }
+        
+        function getSeason(dateString) {
+            const date = new Date(dateString);
+            const month = date.getMonth() + 1; // JavaScript months are 0-indexed
+            
+            if (month >= 3 && month <= 5) return 'spring';
+            if (month >= 6 && month <= 8) return 'summer';
+            if (month >= 9 && month <= 11) return 'fall';
+            return 'winter';
+        }
+        
+        function toggleDestination(destinationName) {
+            const checkbox = document.getElementById(`select-${destinationName.replace(/\s+/g, '-')}`);
+            if (checkbox.checked) {
+                selectDestination(destinationName);
+            } else {
+                removeSelectedDestination(destinationName);
+            }
+        }
+        
+        function updateSelectedDestinationsList() {
+            const list = document.getElementById('selectedDestinationsList');
+            list.innerHTML = '';
+            
+            selectedDestinations.forEach(destination => {
+                const item = document.createElement('div');
+                item.className = 'selected-destination-item';
+                item.innerHTML = `
+                    ${destination}
+                    <span class="remove-dest" onclick="removeSelectedDestination('${destination}')">&times;</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+        
+        function findLocationsForInterest(destination, interest) {
+            // Simulated location data based on destination and interest
+            const locationData = {
+                "Paris, France": {
+                    "museums": [
+                        { name: "Louvre Museum", description: "World's largest art museum", rating: 4.8 },
+                        { name: "Musée d'Orsay", description: "Impressionist and Post-impressionist art", rating: 4.7 },
+                        { name: "Centre Pompidou", description: "Modern and contemporary art", rating: 4.6 }
+                    ],
+                    "food tours": [
+                        { name: "Le Marais Food Tour", description: "Traditional French cuisine", rating: 4.9 },
+                        { name: "Montmartre Food Walk", description: "Local bistros and cafes", rating: 4.7 }
+                    ],
+                    "shopping": [
+                        { name: "Champs-Élysées", description: "Luxury shopping street", rating: 4.8 },
+                        { name: "Le Marais", description: "Boutique shopping district", rating: 4.6 }
+                    ]
+                },
+                "Tokyo, Japan": {
+                    "technology": [
+                        { name: "Akihabara", description: "Electronics district", rating: 4.7 },
+                        { name: "Sony Building", description: "Latest tech showcase", rating: 4.6 }
+                    ],
+                    "food tours": [
+                        { name: "Tsukiji Outer Market", description: "Fresh seafood and local food", rating: 4.8 },
+                        { name: "Shinjuku Food Tour", description: "Local izakayas and street food", rating: 4.7 }
+                    ]
+                },
+                "New York City, USA": {
+                    "museums": [
+                        { name: "Metropolitan Museum of Art", description: "World-class art collection", rating: 4.8 },
+                        { name: "Museum of Modern Art (MoMA)", description: "Modern and contemporary art", rating: 4.7 }
+                    ],
+                    "shopping": [
+                        { name: "Fifth Avenue", description: "Luxury shopping street", rating: 4.8 },
+                        { name: "SoHo", description: "Boutique shopping district", rating: 4.7 }
+                    ]
+                },
+                "Dubai, UAE": {
+                    "shopping": [
+                        { name: "Dubai Mall", description: "World's largest shopping mall", rating: 4.8 },
+                        { name: "Souk Al Bahar", description: "Traditional market", rating: 4.6 }
+                    ],
+                    "desert safari": [
+                        { name: "Arabian Desert Safari", description: "Dune bashing and camel rides", rating: 4.9 },
+                        { name: "Sunset Desert Tour", description: "Evening desert experience", rating: 4.8 }
+                    ]
+                },
+                "Bali, Indonesia": {
+                    "beaches": [
+                        { name: "Kuta Beach", description: "Popular surfing beach", rating: 4.7 },
+                        { name: "Nusa Dua", description: "Luxury beach resort area", rating: 4.8 }
+                    ],
+                    "temples": [
+                        { name: "Uluwatu Temple", description: "Cliff-top temple", rating: 4.8 },
+                        { name: "Besakih Temple", description: "Mother Temple of Bali", rating: 4.7 }
+                    ]
+                }
+            };
+            
+            // Return locations for the destination and interest, or empty array if not found
+            return locationData[destination] && locationData[destination][interest] 
+                ? locationData[destination][interest] 
+                : [];
+        }
+        
+        function showLocations(destinationName) {
+            // Create modal for displaying locations
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+            
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            modalContent.style.cssText = `
+                background-color: white;
+                padding: 20px;
+                border-radius: 5px;
+                max-width: 80%;
+                max-height: 80%;
+                overflow-y: auto;
+            `;
+            
+            // Add close button
+            const closeButton = document.createElement('span');
+            closeButton.innerHTML = '&times;';
+            closeButton.style.cssText = `
+                float: right;
+                font-size: 28px;
+                font-weight: bold;
+                cursor: pointer;
+            `;
+            closeButton.onclick = function() {
+                document.body.removeChild(modal);
+            };
+            
+            // Add title
+            const title = document.createElement('h2');
+            title.textContent = `Locations in ${destinationName}`;
+            
+            // Add content
+            const content = document.createElement('div');
+            content.innerHTML = '<p>Loading locations...</p>';
+            
+            // Assemble modal
+            modalContent.appendChild(closeButton);
+            modalContent.appendChild(title);
+            modalContent.appendChild(content);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            // Find locations for each interest
+            const dest = destinations.find(d => d.name === destinationName);
+            if (dest) {
+                let locationsHtml = '';
+                
+                dest.activities.forEach(activity => {
+                    const locations = findLocationsForInterest(destinationName, activity);
+                    if (locations.length > 0) {
+                        locationsHtml += `
+                            <h3>${activity.charAt(0).toUpperCase() + activity.slice(1)}</h3>
+                            <ul>
+                                ${locations.map(loc => `
+                                    <li>
+                                        <strong>${loc.name}</strong> - ${loc.description}
+                                        <br>
+                                        Rating: ${loc.rating}/5
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        `;
+                    }
+                });
+                
+                if (locationsHtml) {
+                    content.innerHTML = locationsHtml;
+                } else {
+                    content.innerHTML = '<p>No specific locations found for this destination.</p>';
+                }
+            } else {
+                content.innerHTML = '<p>Destination not found.</p>';
+            }
+        }
+
+        function initializeMap() {
+            // Create map container if it doesn't exist
+            if (!document.getElementById('mapContainer')) {
+                const mapContainer = document.createElement('div');
+                mapContainer.id = 'mapContainer';
+                mapContainer.style.width = '100%';
+                mapContainer.style.height = '600px';
+                document.getElementById('map-tab').appendChild(mapContainer);
+            }
+            
+            // Initialize the map
+            const map = new google.maps.Map(document.getElementById('mapContainer'), {
+                zoom: 2,
+                center: { lat: 0, lng: 0 },
+                mapTypeId: 'terrain'
+            });
+            
+            // Add markers and lines for each destination
+            const markers = [];
+            const bounds = new google.maps.LatLngBounds();
+            
+            // Get user's location (home) from the starting point dropdown
+            const homeLocationName = document.getElementById('startingCity').value || "New York City, USA";
+            const homeLocationData = destinations.find(d => d.name === homeLocationName);
+            const homeLocation = homeLocationData ? 
+                { lat: homeLocationData.coordinates.lat, lng: homeLocationData.coordinates.lng } : 
+                { lat: 40.7128, lng: -74.0060 }; // NYC coordinates as fallback
+            
+            window.mapDestinations.forEach((destination, index) => {
+                let position;
+                
+                // Handle "Home" destination
+                if (destination === "Home") {
+                    position = homeLocation;
+                } else {
+                    // Get coordinates for the destination
+                    const dest = destinations.find(d => d.name === destination);
+                    if (dest && dest.coordinates) {
+                        position = { lat: dest.coordinates.lat, lng: dest.coordinates.lng };
+                    } else {
+                        return; // Skip if no coordinates found
+                    }
+                }
+                
+                // Add marker
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: destination,
+                    label: destination === "Home" ? "H" : (index).toString()
+                });
+                markers.push(marker);
+                bounds.extend(position);
+                
+                // Draw line to previous destination
+                if (index > 0) {
+                    let prevPosition;
+                    const prevDest = window.mapDestinations[index - 1];
+                    
+                    if (prevDest === "Home") {
+                        prevPosition = homeLocation;
+                    } else {
+                        const prevDestData = destinations.find(d => d.name === prevDest);
+                        if (prevDestData && prevDestData.coordinates) {
+                            prevPosition = { lat: prevDestData.coordinates.lat, lng: prevDestData.coordinates.lng };
+                        } else {
+                            return; // Skip if no coordinates found
+                        }
+                    }
+                    
+                    const line = new google.maps.Polyline({
+                        path: [prevPosition, position],
+                        geodesic: true,
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2
+                    });
+                    line.setMap(map);
+                }
+            });
+            
+            // Fit map to show all markers
+            if (markers.length > 0) {
+                map.fitBounds(bounds);
+            }
+        }
+    </script>
+</body>
+</html>
